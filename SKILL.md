@@ -151,13 +151,15 @@ reddit_{subreddit}数据/
 
 ## 已知问题与规避
 
-| 问题 | 原因 | 解决方案 |
-|------|------|---------|
-| Reddit 官方 API 401 | 需认证 | 使用 pullpush.io |
-| Reddit JSON API 403 | 反爬拦截 | 使用 pullpush.io |
-| Playwright GLIBC 错误 | 系统版本过低 | 避免使用，改用 API |
-| pullpush 数据延迟 | 存档服务非实时 | 接受 T+1 延迟 |
-| AutoModerator 噪音 | 自动欢迎消息 | 过滤 author="AutoModerator" |
+| 场景 | 触发条件 | 一线修复 | 仍失败兜底 |
+|------|---------|---------|-----------|
+| **pullpush 返回空数据** | `resp.json()["data"]` 为空数组 | ① 检查 subreddit 名称拼写（`curl -sI https://reddit.com/r/xxx/` 确认存在）② 尝试 `search/submission/` 和 `search/comment/` 两个端点 ③ 扩大 size 到 100 | 告知用户："该 subreddit 在 pullpush 存档中无数据。可能原因：subreddit 不存在、设为私有、或为新创建暂无存档。建议换一个 subreddit 或尝试 PRAW。" |
+| **pullpush 返回 5xx** | HTTP 状态码 ≥500 | ① 等待 5s 重试 ② 指数退避：10s → 20s → 40s，最多 3 次 | 告知用户 pullpush 服务暂不可用，建议 10 分钟后重试。不静默跳过 |
+| **Reddit 官方 API 401** | 需认证 | 使用 pullpush.io（本技能首选方案） | 若 pullpush 也不可用，询问用户是否有 Reddit client_id/secret 用于 PRAW |
+| **Playwright GLIBC 错误** | 系统版本过低 | 避免使用浏览器方案，切换到 pullpush API | N/A — 本技能不依赖 Playwright |
+| **AutoModerator 噪音** | 数据中 author="AutoModerator" 占比 >10% | Phase 4 数据结构化时过滤 `author='AutoModerator'` 和 `body='[deleted]'` | 若过滤后数据量 <20，告知用户数据稀疏，建议扩大 size 参数 |
+| **requests 未安装** | `import requests` 失败 | `python3 -m pip install requests --user` | 若 pip 不可用，尝试 `apt-get install python3-requests` |
+| **关键词匹配零结果** | 中文关键词在英文内容中无命中 | 使用双语关键词表（见反例黑名单 #7）。切换为英文关键词重试 | 若双语均无结果，告知用户该话题在该社区讨论较少 |
 
 ## 代码模板
 
