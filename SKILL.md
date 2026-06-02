@@ -38,6 +38,8 @@ triggers:
 3. 数据量（建议 50-100 帖子）
 4. 时间范围（pullpush 按时间倒序获取）
 
+**🔴 CHECKPOINT · 🛑 STOP：确认以上 4 项后再进入 Phase 2。**
+
 ### Phase 2: 环境检查
 
 ```bash
@@ -45,6 +47,8 @@ triggers:
 python3 --version
 python3 -c "import requests; print('requests OK')"
 ```
+
+如果 requests 未安装：`python3 -m pip install requests --user`
 
 ### Phase 3: 数据爬取
 
@@ -81,6 +85,8 @@ comments = resp.json()["data"]
 **分页逻辑**：
 - 使用 `before` 参数，值为上一批数据的最小 `created_utc`
 - 每批间隔 0.5s，避免 rate limit
+
+**🔴 CHECKPOINT：爬取完成后检查 `data` 是否为空。空数据 → 告知用户 "subreddit 可能不存在或暂无存档数据"，不要进入 Phase 4。**
 
 ### Phase 4: 数据结构化
 
@@ -136,6 +142,8 @@ reddit_{subreddit}数据/
 | 耗材自动补货 | run out, need more, order, alternative |
 
 ### Phase 6: 输出交付
+
+**🔴 CHECKPOINT · 🛑 STOP：交付前确认所有 JSON + MD 文件已生成。向用户展示文件清单和关键发现摘要，等用户确认是否需要补充分析。**
 
 1. 所有 JSON 数据文件保存到 `~/workspace/reddit_{subreddit}数据/`
 2. 生成 Markdown 分析报告
