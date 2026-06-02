@@ -164,3 +164,22 @@ python3 -m pip install requests --user
 
 - pullpush.io API 文档: https://api.pullpush.io/
 - Reddit API (PRAW): https://praw.readthedocs.io/
+
+---
+
+## 反例与黑名单（不要做的事）
+
+| # | 反模式 | 为什么不要做 | 正确做法 |
+|---|--------|-----------|---------|
+| 1 | **直接用 `curl reddit.com/r/xxx.json`** | Reddit JSON API 已全面返回 403，浪费时间 | 首选 pullpush.io 存档 API，备选 PRAW |
+| 2 | **不确认 subreddit 是否存在就开始爬** | `r/NonExistentSub` 返回空数据，静默失败 | Phase 1 用 `curl -sI https://reddit.com/r/xxx/` 检查 HTTP 状态码 |
+| 3 | **一次性请求 500+ 条数据不设分页** | pullpush 单次上限 ~100 条，超量截断 | 使用 `before` 参数分页，每批 100 条，间隔 0.5s |
+| 4 | **不过滤 AutoModerator 和 [deleted]** | 噪音污染数据分析，AutoMod 欢迎消息无分析价值 | Phase 4 数据结构化时过滤 `author='AutoModerator'` 和 `body='[deleted]'` |
+| 5 | **用 Playwright 爬 Reddit** | GLIBC 版本兼容问题频发，环境依赖重 | 除非需要登录态内容，否则用 API 方案 |
+| 6 | **空数据静默跳过不报错** | 用户等半天不知道数据是空的还是爬失败了 | pullpush 返回 `data:[]` 时显式告知："subreddit 可能不存在或暂无存档数据" |
+| 7 | **关键词过滤用中文匹配英文内容** | 中文关键词（"水泵"）无法匹配英文帖子（"pump"） | 双语关键词表：`{"灌溉": ["water","pump","irrigation"], "霉菌": ["mold","algae","fungus"]}` |
+| 8 | **分析报告无优先级排序** | 30 条痛点平铺，用户不知道先修哪个 | 按提及频次 × 情绪强度排序，Top 5 放报告开头 |
+
+### 触发场景
+
+Phase 5 分析生成前对照本表逐条检查。任一反模式命中 → 修复后继续。
